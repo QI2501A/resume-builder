@@ -1,14 +1,6 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
-
-// Tailwind-updated Resume Builder
-// NOTE: Ensure your project has Tailwind set up and that src/index.css contains:
-// @tailwind base;
-// @tailwind components;
-// @tailwind utilities;
-// Also add Inter font to your index.html:
-// <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
 
 export default function ResumeBuilder() {
   const [form, setForm] = useState({
@@ -30,6 +22,13 @@ export default function ResumeBuilder() {
   });
 
   const previewRef = useRef(null);
+  const [dark, setDark] = useState(false);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    if (dark) root.classList.add("dark");
+    else root.classList.remove("dark");
+  }, [dark]);
 
   const ICONS = {
     name: "👤",
@@ -172,16 +171,23 @@ export default function ResumeBuilder() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-sky-50 to-white font-sans text-slate-900">
-      <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6 p-4 md:p-6">
+    <div className="min-h-screen font-sans">
+      <div className="rb-shell">
         {/* Sidebar */}
-        <aside className="col-span-12 md:col-span-1 bg-transparent rounded-2xl p-6 h-[calc(100vh-2rem)] sticky top-6 overflow-auto">
+        <aside className="rb-sidebar card p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold">Resume Builder</h2>
             <div className="flex items-center gap-2">
               <button
+                onClick={() => setDark((d) => !d)}
+                className="btn btn-neutral btn-sm"
+                title="Toggle dark mode"
+              >
+                {dark ? "☀️ Light" : "🌙 Dark"}
+              </button>
+              <button
                 onClick={fillSample}
-                className="text-sm px-3 py-1 rounded-md bg-slate-100 hover:bg-slate-200"
+                className="btn btn-neutral btn-sm"
               >
                 Auto-fill
               </button>
@@ -189,133 +195,128 @@ export default function ResumeBuilder() {
           </div>
 
           <div className="space-y-6">
+            <h3 className="subsection">Basics</h3>
             <label className="block">
-              <div className="text-sm text-slate-500 mb-1">
-                {ICONS.name} Full name
-              </div>
+              <div className="section-title mb-1">{ICONS.name} Full name</div>
               <input
                 value={form.name}
                 onChange={(e) => updateField("name", e.target.value)}
-                className="w-full p-3 rounded-xl bg-white shadow-sm ring-1 ring-transparent focus:ring-2 focus:ring-indigo-200 border-transparent"
+                className="input"
               />
             </label>
 
             <label className="block">
-              <div className="text-sm text-slate-500 mb-1">
-                Professional title
-              </div>
+              <div className="section-title mb-1">Professional title</div>
               <input
                 value={form.title}
                 onChange={(e) => updateField("title", e.target.value)}
-                className="w-full p-3 rounded-xl bg-white shadow-sm ring-1 ring-transparent focus:ring-2 focus:ring-indigo-200 border-transparent"
+                className="input"
               />
             </label>
 
+            <div className="divider" />
+            <h3 className="subsection">Contact</h3>
             <div className="grid grid-cols-2 gap-4">
               <label>
-                <div className="text-sm text-slate-500 mb-1">
-                  {ICONS.phone} Phone
-                </div>
+                <div className="section-title mb-1">{ICONS.phone} Phone</div>
                 <input
                   value={form.phone}
                   onChange={(e) => updateField("phone", e.target.value)}
-                  className="w-full p-3 rounded-xl bg-white shadow-sm ring-1 ring-transparent focus:ring-2 focus:ring-indigo-200 border-transparent"
+                  className="input"
                 />
               </label>
               <label>
-                <div className="text-sm text-slate-500 mb-1">
-                  {ICONS.email} Email
-                </div>
+                <div className="section-title mb-1">{ICONS.email} Email</div>
                 <input
                   value={form.email}
                   onChange={(e) => updateField("email", e.target.value)}
-                  className="w-full p-3 rounded-xl bg-white shadow-sm ring-1 ring-transparent focus:ring-2 focus:ring-indigo-200 border-transparent"
+                  className="input"
                 />
               </label>
             </div>
 
             <label>
-              <div className="text-sm text-slate-500 mb-1">
-                {ICONS.address} Address
-              </div>
+              <div className="section-title mb-1">{ICONS.address} Address</div>
               <input
                 value={form.address}
                 onChange={(e) => updateField("address", e.target.value)}
-                className="w-full p-3 rounded-xl bg-white shadow-sm ring-1 ring-transparent focus:ring-2 focus:ring-indigo-200 border-transparent"
+                className="input"
               />
             </label>
 
+            <div className="divider" />
+            <h3 className="subsection">Links</h3>
             <div className="grid grid-cols-2 gap-4">
               <label>
-                <div className="text-sm text-slate-500 mb-1">
+                <div className="section-title mb-1">
                   {ICONS.linkedin} LinkedIn
                 </div>
                 <input
                   value={form.linkedin}
                   onChange={(e) => updateField("linkedin", e.target.value)}
-                  className="w-full p-3 rounded-xl bg-white shadow-sm ring-1 ring-transparent focus:ring-2 focus:ring-indigo-200 border-transparent"
+                  className="input"
                 />
               </label>
               <label>
-                <div className="text-sm text-slate-500 mb-1">
-                  {ICONS.github} GitHub
-                </div>
+                <div className="section-title mb-1">{ICONS.github} GitHub</div>
                 <input
                   value={form.github}
                   onChange={(e) => updateField("github", e.target.value)}
-                  className="w-full p-3 rounded-xl bg-white shadow-sm ring-1 ring-transparent focus:ring-2 focus:ring-indigo-200 border-transparent"
+                  className="input"
                 />
               </label>
             </div>
 
+            <div className="divider" />
+            <h3 className="subsection">Education & Course</h3>
             <label>
-              <div className="text-sm text-slate-500 mb-1">
+              <div className="section-title mb-1">
                 {ICONS.course} Course / Major
               </div>
               <input
                 value={form.course}
                 onChange={(e) => updateField("course", e.target.value)}
-                className="w-full p-3 rounded-xl bg-white shadow-sm ring-1 ring-transparent focus:ring-2 focus:ring-indigo-200 border-transparent"
+                className="input"
               />
             </label>
 
             <div className="grid grid-cols-2 gap-4">
               <label>
-                <div className="text-sm text-slate-500 mb-1">
-                  {ICONS.gpa} GPA
-                </div>
+                <div className="section-title mb-1">{ICONS.gpa} GPA</div>
                 <input
                   value={form.gpa}
                   onChange={(e) => updateField("gpa", e.target.value)}
-                  className="w-full p-3 rounded-xl bg-white shadow-sm ring-1 ring-transparent focus:ring-2 focus:ring-indigo-200 border-transparent"
+                  className="input"
                 />
               </label>
               <label>
-                <div className="text-sm text-slate-500 mb-1">
+                <div className="section-title mb-1">
                   {ICONS.summary} Short summary / objective
                 </div>
                 <input
                   value={form.summary}
                   onChange={(e) => updateField("summary", e.target.value)}
-                  className="w-full p-3 rounded-xl bg-white shadow-sm ring-1 ring-transparent focus:ring-2 focus:ring-indigo-200 border-transparent"
+                  className="input"
                 />
               </label>
             </div>
 
+            <div className="divider" />
+            <h3 className="subsection">Skills</h3>
             <label>
-              <div className="text-sm text-slate-500 mb-1">
+              <div className="section-title mb-1">
                 {ICONS.skills} Skills (comma / newline separated)
               </div>
               <textarea
                 value={form.skillsInput}
                 onChange={(e) => updateField("skillsInput", e.target.value)}
                 rows={3}
-                className="w-full p-3 rounded-xl bg-white shadow-sm ring-1 ring-transparent focus:ring-2 focus:ring-indigo-200 border-transparent"
+                className="input"
               />
               <div className="flex gap-3 mt-3">
                 <button
                   onClick={handleSkillsCommit}
-                  className="px-4 py-2 rounded-xl bg-indigo-600 text-white text-sm shadow-sm"
+                  className="btn btn-primary"
                 >
                   Save skills
                 </button>
@@ -323,19 +324,20 @@ export default function ResumeBuilder() {
                   onClick={() =>
                     setForm((p) => ({ ...p, skillsInput: "", skills: [] }))
                   }
-                  className="px-4 py-2 rounded-xl bg-white text-sm shadow-sm border border-slate-100"
+                  className="btn btn-neutral"
                 >
                   Clear
                 </button>
               </div>
             </label>
 
+            <div className="divider" />
             <section className="pt-2">
-              <h3 className="font-medium text-slate-700 mb-2">Education</h3>
+              <h3 className="font-medium text-slate-800 mb-2">Education</h3>
               {form.education.map((edu, i) => (
                 <div
                   key={i}
-                  className="p-3 rounded-xl bg-white/90 ring-1 ring-slate-50 mb-3"
+                  className="p-3 rounded-xl bg-white ring-1 ring-slate-200 mb-3"
                 >
                   <input
                     placeholder="School / Institute"
@@ -343,7 +345,7 @@ export default function ResumeBuilder() {
                     onChange={(e) =>
                       updateField(`education.${i}.school`, e.target.value)
                     }
-                    className="w-full p-2 rounded-lg bg-white border-transparent"
+                    className="input px-2 py-2"
                   />
                   <div className="grid grid-cols-2 gap-2 mt-2">
                     <input
@@ -352,7 +354,7 @@ export default function ResumeBuilder() {
                       onChange={(e) =>
                         updateField(`education.${i}.degree`, e.target.value)
                       }
-                      className="w-full p-2 rounded-lg bg-white border-transparent"
+                      className="input px-2 py-2"
                     />
                     <input
                       placeholder="Start - End (eg 2021 - 2024)"
@@ -364,7 +366,7 @@ export default function ResumeBuilder() {
                         updateField(`education.${i}.start`, parts[0] || "");
                         updateField(`education.${i}.end`, parts[1] || "");
                       }}
-                      className="w-full p-2 rounded-lg bg-white border-transparent"
+                      className="input px-2 py-2"
                     />
                   </div>
                   <input
@@ -373,7 +375,7 @@ export default function ResumeBuilder() {
                     onChange={(e) =>
                       updateField(`education.${i}.details`, e.target.value)
                     }
-                    className="w-full p-2 rounded-lg bg-white border-transparent mt-2"
+                    className="input px-2 py-2 mt-2"
                   />
                   <div className="flex justify-end mt-2">
                     <button
@@ -386,23 +388,21 @@ export default function ResumeBuilder() {
                 </div>
               ))}
               <div>
-                <button
-                  onClick={addEducation}
-                  className="px-3 py-2 rounded-xl bg-green-600 text-white text-sm shadow-sm"
-                >
+                <button onClick={addEducation} className="btn btn-success">
                   Add education
                 </button>
               </div>
             </section>
 
+            <div className="divider" />
             <section className="pt-3">
-              <h3 className="font-medium text-slate-700 mb-2">
+              <h3 className="font-medium text-slate-800 mb-2">
                 Work Experience
               </h3>
               {form.experience.map((ex, i) => (
                 <div
                   key={i}
-                  className="p-3 rounded-xl bg-white/90 ring-1 ring-slate-50 mb-3"
+                  className="p-3 rounded-xl bg-white ring-1 ring-slate-200 mb-3"
                 >
                   <input
                     placeholder="Role"
@@ -410,7 +410,7 @@ export default function ResumeBuilder() {
                     onChange={(e) =>
                       updateField(`experience.${i}.role`, e.target.value)
                     }
-                    className="w-full p-2 rounded-lg bg-white border-transparent mb-2"
+                    className="input px-2 py-2 mb-2"
                   />
                   <input
                     placeholder="Company"
@@ -418,7 +418,7 @@ export default function ResumeBuilder() {
                     onChange={(e) =>
                       updateField(`experience.${i}.company`, e.target.value)
                     }
-                    className="w-full p-2 rounded-lg bg-white border-transparent mb-2"
+                    className="input px-2 py-2 mb-2"
                   />
                   <input
                     placeholder="Start - End (eg Jun 2023 - Present)"
@@ -430,7 +430,7 @@ export default function ResumeBuilder() {
                       updateField(`experience.${i}.start`, parts[0] || "");
                       updateField(`experience.${i}.end`, parts[1] || "");
                     }}
-                    className="w-full p-2 rounded-lg bg-white border-transparent mb-2"
+                    className="input px-2 py-2 mb-2"
                   />
                   <textarea
                     placeholder="Details / achievements (one per line)"
@@ -438,7 +438,7 @@ export default function ResumeBuilder() {
                     onChange={(e) =>
                       updateField(`experience.${i}.details`, e.target.value)
                     }
-                    className="w-full p-2 rounded-lg bg-white border-transparent"
+                    className="input px-2 py-2"
                   />
                   <div className="flex justify-end mt-2">
                     <button
@@ -451,17 +451,15 @@ export default function ResumeBuilder() {
                 </div>
               ))}
               <div>
-                <button
-                  onClick={addExperience}
-                  className="px-3 py-2 rounded-xl bg-green-600 text-white text-sm shadow-sm"
-                >
+                <button onClick={addExperience} className="btn btn-success">
                   Add experience
                 </button>
               </div>
             </section>
 
+            <div className="divider" />
             <section className="pt-3">
-              <h3 className="font-medium text-slate-700 mb-2">
+              <h3 className="font-medium text-slate-800 mb-2">
                 Certifications
               </h3>
               {form.certifications.map((c, i) => (
@@ -472,7 +470,7 @@ export default function ResumeBuilder() {
                     onChange={(e) =>
                       updateField(`certifications.${i}`, e.target.value)
                     }
-                    className="flex-1 p-2 rounded-lg bg-white border-transparent"
+                    className="input px-2 py-2 flex-1"
                   />
                   <button
                     onClick={() => removeCertification(i)}
@@ -483,26 +481,17 @@ export default function ResumeBuilder() {
                 </div>
               ))}
               <div className="mt-2">
-                <button
-                  onClick={addCertification}
-                  className="px-3 py-2 rounded-xl bg-green-600 text-white text-sm shadow-sm"
-                >
+                <button onClick={addCertification} className="btn btn-success">
                   Add certification
                 </button>
               </div>
             </section>
 
             <div className="flex gap-3 mt-4">
-              <button
-                onClick={downloadPDF}
-                className="flex-1 px-4 py-2 rounded-xl bg-indigo-600 text-white"
-              >
+              <button onClick={downloadPDF} className="btn btn-primary">
                 Download PDF
               </button>
-              <button
-                onClick={downloadWord}
-                className="flex-1 px-4 py-2 rounded-xl bg-amber-500 text-white"
-              >
+              <button onClick={downloadWord} className="btn btn-warning">
                 Download Word
               </button>
             </div>
@@ -510,19 +499,17 @@ export default function ResumeBuilder() {
         </aside>
 
         {/* Preview */}
-        <main className="col-span-12 md:col-span-1">
-          <div className="bg-transparent p-2 md:p-6">
-            <div className="flex justify-between items-start mb-4">
-              <h3 className="text-slate-600 font-medium">Preview</h3>
-              <div className="text-sm text-slate-400">
-                What you see is exported
-              </div>
-            </div>
+        <main className="rb-preview">
+          <div className="flex justify-between items-start mb-4">
+            <h3 className="text-slate-600 font-medium">Preview</h3>
+            <div className="text-sm text-slate-400">What you see is exported</div>
+          </div>
 
+          <div className="rb-preview-scroller">
             <div
               id="resume-preview"
               ref={previewRef}
-              className="w-full min-h-[70vh] bg-white p-12 rounded-none shadow-none"
+              className="paper card p-10 md:p-12 mx-auto"
             >
               <div className="flex justify-between items-start">
                 <div>
@@ -546,7 +533,7 @@ export default function ResumeBuilder() {
                 <div className="md:col-span-2">
                   {form.summary && (
                     <section className="mb-4">
-                      <h4 className="font-semibold text-slate-700">Profile</h4>
+                      <h4 className="font-semibold text-slate-800">Profile</h4>
                       <p className="text-sm text-slate-700 mt-2">
                         {form.summary}
                       </p>
@@ -554,7 +541,7 @@ export default function ResumeBuilder() {
                   )}
 
                   <section className="mb-4">
-                    <h4 className="font-semibold text-slate-700">
+                    <h4 className="font-semibold text-slate-800">
                       Work Experience
                     </h4>
                     {form.experience.filter((x) => x.role || x.company)
@@ -592,7 +579,7 @@ export default function ResumeBuilder() {
                   </section>
 
                   <section className="mb-4">
-                    <h4 className="font-semibold text-slate-700">Education</h4>
+                    <h4 className="font-semibold text-slate-800">Education</h4>
                     {form.education.map(
                       (edu, i) =>
                         (edu.school || edu.degree) && (
@@ -620,7 +607,7 @@ export default function ResumeBuilder() {
                   </section>
 
                   <section>
-                    <h4 className="font-semibold text-slate-700">
+                    <h4 className="font-semibold text-slate-800">
                       Certifications
                     </h4>
                     <ul className="list-disc list-inside text-sm text-slate-700 mt-2">
@@ -636,7 +623,7 @@ export default function ResumeBuilder() {
 
                 <aside className="md:col-span-1">
                   <section className="mb-4">
-                    <h4 className="font-semibold text-slate-700">Course</h4>
+                    <h4 className="font-semibold text-slate-800">Course</h4>
                     <div className="text-sm text-slate-700 mt-2">
                       {form.course || "—"}
                     </div>
@@ -648,7 +635,7 @@ export default function ResumeBuilder() {
                   </section>
 
                   <section>
-                    <h4 className="font-semibold text-slate-700">Skills</h4>
+                    <h4 className="font-semibold text-slate-800">Skills</h4>
                     <div className="mt-2 flex flex-wrap gap-2">
                       {form.skills.length === 0 && (
                         <div className="text-sm text-slate-500">No skills</div>
@@ -669,16 +656,16 @@ export default function ResumeBuilder() {
           </div>
         </main>
 
-        <div className="fixed right-6 bottom-6 z-50 flex flex-col gap-3">
+        <div className="no-print fixed right-6 bottom-6 z-50 flex flex-col gap-3">
           <button
             onClick={downloadPDF}
-            className="px-4 py-2 rounded-full bg-indigo-600 text-white shadow-lg"
+            className="btn btn-primary rounded-full shadow-lg"
           >
             📄 PDF
           </button>
           <button
             onClick={downloadWord}
-            className="px-4 py-2 rounded-full bg-amber-500 text-white shadow-lg"
+            className="btn btn-warning rounded-full shadow-lg"
           >
             📁 Word
           </button>
