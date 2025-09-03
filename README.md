@@ -2,7 +2,7 @@
 
 Interactive resume builder with live preview, PDF/Word export, and a clean two‑column layout. Built with React + Vite and handcrafted CSS (no Tailwind).
 
-<img src="./resume-builder.png" alt="Resume Builder screenshot" />
+<img src="./public/resume-builder.png" alt="Resume Builder screenshot" />
 
 ## Features
 
@@ -48,7 +48,7 @@ Tip: The exported PDF/Word reflects exactly what you see in the preview area.
 - `src/index.css` — Handcrafted theme, components (`.btn`, `.input`, `.card`), layout utilities, and print styles
 - `index.html` — App shell and Inter font include
 
-The README references `./resume-builder.png`. Place your screenshot at the repository root with that filename to render it on GitHub.
+The README references `./public/resume-builder.png`. Place your screenshot at `public/resume-builder.png` to render it on GitHub.
 
 ## Tech
 
