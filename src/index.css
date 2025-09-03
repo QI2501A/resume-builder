@@ -122,6 +122,17 @@ body {
   color: #0f172a;
   width: 210mm;
   min-height: 297mm;
+  /* Lock light palette inside preview regardless of global theme */
+  --text: #0f172a; /* slate-900 */
+  --muted-400: #94a3b8; /* slate-400 */
+  --muted-500: #64748b; /* slate-500 */
+  --muted-600: #475569; /* slate-600 */
+  --muted-700: #334155; /* slate-700 */
+  --muted-800: #1e293b; /* slate-800 */
+  --muted-900: #0f172a; /* slate-900 */
+  --border: #e2e8f0; /* slate-200 */
+  --card: #ffffff;
+  --chip: #f8fafc; /* slate-50 */
 }
 
 /* Print styles */
