@@ -1,6 +1,6 @@
 # Resume Builder
 
-Interactive resume builder with live preview, PDF/Word export, and a clean two‑column layout. Built with React + Vite and handcrafted CSS (no Tailwind).
+Interactive resume builder with live preview, PDF/DOCX export, autosave, one‑page compact mode, and a clean two‑column layout. Built with React + Vite and handcrafted CSS (no Tailwind).
 
 <img src="./public/resume-builder.png" alt="Resume Builder screenshot" />
 
@@ -8,7 +8,10 @@ Interactive resume builder with live preview, PDF/Word export, and a clean two�
 
 - Live preview: What you see is exported
 - PDF export using `html2canvas` + `jsPDF`
-- Word export (HTML `.doc` download)
+- DOCX export using `docx` (on‑demand loaded)
+- Autosave to `localStorage` + Import/Export JSON
+- One‑page compact mode (tightens fonts/spacing to fit)
+- Passport-size photo upload (shown in header)
 - Dark mode toggle (class-based: `:root.dark`)
 - A4 print styles and margins
 - Rigid two-column editor/preview layout
@@ -38,13 +41,15 @@ If Vite warns about Node version, upgrade Node (e.g., via `nvm`).
 - Fill out Basics, Contact, Links, Education, Experience, Certifications
 - Use “Save skills” to commit the skills list from the textarea
 - Toggle dark/light using the button in the sidebar
-- Export via “PDF” or “Word” buttons (bottom-right)
+- Export via “PDF” or “DOCX” buttons (bottom-right)
+- Import/Export your data as JSON from the sidebar
+- Toggle “Keep to 1 page (compact)” to shrink spacing/fonts
 
 Tip: The exported PDF/Word reflects exactly what you see in the preview area.
 
 ## File Overview
 
-- `src/ResumeBuilder.jsx` — Main app UI and export logic
+- `src/ResumeBuilder.jsx` — Main app UI and export logic (PDF/DOCX/JSON, autosave)
 - `src/index.css` — Handcrafted theme, components (`.btn`, `.input`, `.card`), layout utilities, and print styles
 - `index.html` — App shell and Inter font include
 

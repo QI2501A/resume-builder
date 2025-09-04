@@ -11,6 +11,8 @@ export default function ResumeBuilder() {
     address: "",
     linkedin: "",
     github: "",
+    websites: [],
+    photo: "",
     course: "",
     gpa: "",
     summary: "",
@@ -23,12 +25,41 @@ export default function ResumeBuilder() {
 
   const previewRef = useRef(null);
   const [dark, setDark] = useState(false);
+  const [pages, setPages] = useState(1);
+  const [compact, setCompact] = useState(true); // default on to keep to 1 page when possible
 
   useEffect(() => {
     const root = document.documentElement;
     if (dark) root.classList.add("dark");
     else root.classList.remove("dark");
   }, [dark]);
+
+  // --- Persistence: load on mount, autosave on change ---
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("rb.state.v1");
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === "object") {
+          setForm(parsed.form || parsed);
+          if (typeof parsed.dark === "boolean") setDark(parsed.dark);
+          if (typeof parsed.compact === "boolean") setCompact(parsed.compact);
+        }
+      }
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    const id = setTimeout(() => {
+      try {
+        localStorage.setItem(
+          "rb.state.v1",
+          JSON.stringify({ form, dark, compact })
+        );
+      } catch {}
+    }, 300);
+    return () => clearTimeout(id);
+  }, [form, dark, compact]);
 
   const ICONS = {
     name: "👤",
@@ -52,6 +83,7 @@ export default function ResumeBuilder() {
       address: "123 Main St, City",
       linkedin: "linkedin.com/in/alex",
       github: "github.com/alex",
+      websites: [{ label: "Portfolio", url: "https://alex.dev" }],
       course: "Computer Science",
       gpa: "3.8",
       summary:
@@ -142,16 +174,108 @@ export default function ResumeBuilder() {
     setForm((p) => ({ ...p, skills: arr }));
   }
 
+  // Websites / portfolio helpers
+  function addWebsite() {
+    setForm((p) => ({
+      ...p,
+      websites: [...(p.websites || []), { label: "", url: "" }],
+    }));
+  }
+  function removeWebsite(i) {
+    setForm((p) => ({
+      ...p,
+      websites: (p.websites || []).filter((_, idx) => idx !== i),
+    }));
+  }
+
+  function handlePhotoChange(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = String(reader.result || "");
+      updateField("photo", dataUrl);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  }
+  function removePhoto() {
+    updateField("photo", "");
+  }
+
+  // --- Link helpers ---
+  function normalizeUrl(input) {
+    if (!input) return "";
+    const s = String(input).trim();
+    if (!s) return "";
+    if (s.startsWith("http://") || s.startsWith("https://")) return s;
+    if (s.startsWith("mailto:") || s.startsWith("tel:")) return s;
+    if (/^[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}$/.test(s)) return `mailto:${s}`;
+    return `https://${s}`;
+  }
+  function normalizeTel(input) {
+    if (!input) return "";
+    const digits = String(input).replace(/[^+\d]/g, "");
+    return digits ? `tel:${digits}` : "";
+  }
+  function linkify(text) {
+    if (!text) return null;
+    const regex = /((https?:\/\/[^\s]+)|(www\.[^\s]+)|([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}))/g;
+    const parts = [];
+    let last = 0;
+    let m;
+    while ((m = regex.exec(text)) !== null) {
+      const start = m.index;
+      if (start > last) parts.push(text.slice(last, start));
+      const match = m[0];
+      const href = normalizeUrl(match);
+      parts.push(
+        <a key={`l${start}`} href={href} target="_blank" rel="noreferrer">
+          {match}
+        </a>
+      );
+      last = regex.lastIndex;
+    }
+    if (last < text.length) parts.push(text.slice(last));
+    return parts;
+  }
+
+  // --- Export: PDF / Word (.docx) / JSON ---
   async function downloadPDF() {
     const el = previewRef.current;
     if (!el) return;
-    const canvas = await html2canvas(el, { scale: 2 });
+    const canvas = await html2canvas(el, {
+      scale: 2,
+      backgroundColor: "#ffffff",
+      useCORS: true,
+    });
     const imgData = canvas.toDataURL("image/png");
     const pdf = new jsPDF({ unit: "pt", format: "a4" });
     const imgProps = pdf.getImageProperties(imgData);
     const pdfWidth = pdf.internal.pageSize.getWidth();
-    const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-    pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+    const pdfHeight = pdf.internal.pageSize.getHeight();
+    const ratio = Math.min(pdfWidth / imgProps.width, pdfHeight / imgProps.height);
+    const w = imgProps.width * ratio;
+    const h = imgProps.height * ratio;
+    pdf.addImage(imgData, "PNG", 0, 0, w, h);
+    try {
+      const elRect = el.getBoundingClientRect();
+      const fx = w / elRect.width; // PDF units per CSS px (X)
+      const fy = h / elRect.height; // PDF units per CSS px (Y)
+      const anchors = el.querySelectorAll("a[href]");
+      anchors.forEach((a) => {
+        const href = a.getAttribute("href") || "";
+        if (!href || /^javascript:/i.test(href)) return;
+        const r = a.getBoundingClientRect();
+        const x = (r.left - elRect.left) * fx;
+        const y = (r.top - elRect.top) * fy;
+        const ww = r.width * fx;
+        const hh = r.height * fy;
+        if (ww > 2 && hh > 2) {
+          pdf.link(x, y, ww, hh, { url: href });
+        }
+      });
+    } catch {}
     pdf.save(`${(form.name || "resume").replace(/\s+/g, "_")}.pdf`);
   }
 
@@ -169,6 +293,198 @@ export default function ResumeBuilder() {
     a.remove();
     URL.revokeObjectURL(url);
   }
+
+  async function downloadDocx() {
+    const { Document, Packer, Paragraph, HeadingLevel, TextRun } = await import(
+      "docx"
+    );
+    const { saveAs } = await import("file-saver");
+    const name = form.name || "Full Name";
+    const doc = new Document({
+      sections: [
+        {
+          properties: {},
+          children: [
+            new Paragraph({
+              text: name,
+              heading: HeadingLevel.TITLE,
+            }),
+            form.title
+              ? new Paragraph({ text: form.title })
+              : new Paragraph({ text: "" }),
+            new Paragraph({ text: "" }),
+
+            // Contact
+            new Paragraph({ text: "Contact", heading: HeadingLevel.HEADING_2 }),
+            ...(Array.from(
+              [
+                form.phone,
+                form.email,
+                form.address,
+                form.linkedin,
+                form.github,
+                ...((form.websites || []).map((w) =>
+                  `${w.label ? w.label + ": " : ""}${w.url}`
+                )),
+              ]
+                .filter(Boolean)
+                .map((v) => new Paragraph({ text: String(v) }))
+            )),
+            new Paragraph({ text: "" }),
+
+            // Profile
+            ...(form.summary
+              ? [
+                  new Paragraph({
+                    text: "Profile",
+                    heading: HeadingLevel.HEADING_2,
+                  }),
+                  new Paragraph({ text: form.summary }),
+                  new Paragraph({ text: "" }),
+                ]
+              : []),
+
+            // Experience
+            new Paragraph({
+              text: "Work Experience",
+              heading: HeadingLevel.HEADING_2,
+            }),
+            ...form.experience
+              .filter((ex) => ex.role || ex.company)
+              .flatMap((ex) => {
+                const header = `${ex.role || ""}${ex.company ? " — " + ex.company : ""}`.trim();
+                const dates = `${ex.start || ""}${ex.end ? " - " + ex.end : ""}`.trim();
+                const lines = (ex.details || "")
+                  .split("\n")
+                  .map((s) => s.trim())
+                  .filter(Boolean);
+                return [
+                  new Paragraph({
+                    children: [
+                      new TextRun({ text: header, bold: true }),
+                      dates ? new TextRun({ text: `  ${dates}`, italics: true }) : new TextRun("")
+                    ],
+                  }),
+                  ...lines.map(
+                    (l) => new Paragraph({ text: l, bullet: { level: 0 } })
+                  ),
+                ];
+              }),
+            new Paragraph({ text: "" }),
+
+            // Education
+            new Paragraph({ text: "Education", heading: HeadingLevel.HEADING_2 }),
+            ...form.education
+              .filter((e) => e.school || e.degree)
+              .flatMap((e) => {
+                const header = `${e.school || ""}${e.degree ? " — " + e.degree : ""}`.trim();
+                const dates = `${e.start || ""}${e.end ? " - " + e.end : ""}`.trim();
+                return [
+                  new Paragraph({
+                    children: [
+                      new TextRun({ text: header, bold: true }),
+                      dates ? new TextRun({ text: `  ${dates}`, italics: true }) : new TextRun("")
+                    ],
+                  }),
+                  ...(e.details ? [new Paragraph({ text: e.details })] : []),
+                ];
+              }),
+            new Paragraph({ text: "" }),
+
+            // Skills
+            new Paragraph({ text: "Skills", heading: HeadingLevel.HEADING_2 }),
+            ...(form.skills.length
+              ? form.skills.map((s) =>
+                  new Paragraph({ text: s, bullet: { level: 0 } })
+                )
+              : [new Paragraph({ text: "No skills" })]),
+
+            // Certifications
+            new Paragraph({ text: "" }),
+            new Paragraph({ text: "Certifications", heading: HeadingLevel.HEADING_2 }),
+            ...(form.certifications.filter(Boolean).length
+              ? form.certifications
+                  .filter(Boolean)
+                  .map((c) => new Paragraph({ text: c, bullet: { level: 0 } }))
+              : [new Paragraph({ text: "None" })]),
+          ],
+        },
+      ],
+    });
+
+    const blob = await Packer.toBlob(doc);
+    saveAs(blob, `${(form.name || "resume").replace(/\s+/g, "_")}.docx`);
+  }
+
+  function exportJSON() {
+    const data = { version: 1, dark, form };
+    const blob = new Blob([JSON.stringify(data, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${(form.name || "resume").replace(/\s+/g, "_")}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  function importJSON(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const parsed = JSON.parse(String(reader.result || ""));
+        if (parsed.form) {
+          setForm(parsed.form);
+          if (typeof parsed.dark === "boolean") setDark(parsed.dark);
+        } else {
+          setForm(parsed);
+        }
+      } catch {}
+    };
+    reader.readAsText(file);
+    // reset input so same file can be re-imported if needed
+    e.target.value = "";
+  }
+
+  function resetAll() {
+    setForm({
+      name: "",
+      title: "",
+      phone: "",
+      email: "",
+      address: "",
+      linkedin: "",
+      github: "",
+      course: "",
+      gpa: "",
+      summary: "",
+      skillsInput: "",
+      skills: [],
+      education: [{ school: "", degree: "", start: "", end: "", details: "" }],
+      experience: [{ role: "", company: "", start: "", end: "", details: "" }],
+      certifications: [""],
+    });
+    try {
+      localStorage.removeItem("rb.state.v1");
+    } catch {}
+  }
+
+  // --- Page overflow indicator (estimates A4 pages) ---
+  useEffect(() => {
+    const el = previewRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
+    const pxPerMm = rect.width / 210; // since .paper width is 210mm
+    const a4HeightPx = 297 * pxPerMm;
+    const pagesEst = Math.max(1, Math.ceil(rect.height / a4HeightPx));
+    setPages(pagesEst);
+  }, [form, previewRef]);
 
   return (
     <div className="min-h-screen font-sans">
@@ -195,6 +511,33 @@ export default function ResumeBuilder() {
           </div>
 
           <div className="space-y-6">
+            <div className="grid grid-cols-2 gap-2">
+              <button onClick={exportJSON} className="btn btn-neutral btn-sm">
+                Export JSON
+              </button>
+              <label className="btn btn-neutral btn-sm" style={{ cursor: "pointer" }}>
+                Import JSON
+                <input
+                  type="file"
+                  accept="application/json"
+                  onChange={importJSON}
+                  style={{ display: "none" }}
+                />
+              </label>
+              <button onClick={resetAll} className="btn btn-neutral btn-sm">
+                Reset
+              </button>
+            </div>
+
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={compact}
+                onChange={(e) => setCompact(e.target.checked)}
+              />
+              <span className="text-sm text-slate-600">Keep to 1 page (compact)</span>
+            </label>
+
             <h3 className="subsection">Basics</h3>
             <label className="block">
               <div className="section-title mb-1">{ICONS.name} Full name</div>
@@ -215,6 +558,23 @@ export default function ResumeBuilder() {
             </label>
 
             <div className="divider" />
+            <h3 className="subsection">Photo</h3>
+            <div className="grid grid-cols-2 gap-4 items-start">
+              <div>
+                <label className="btn btn-neutral btn-sm" style={{ cursor: "pointer" }}>
+                  Upload photo
+                  <input type="file" accept="image/*" onChange={handlePhotoChange} style={{ display: "none" }} />
+                </label>
+                {form.photo && (
+                  <div className="mt-2">
+                    <button onClick={removePhoto} className="text-sm text-red-600">Remove photo</button>
+                  </div>
+                )}
+              </div>
+              {form.photo && (
+                <img src={form.photo} alt="Passport" className="passport-photo" />
+              )}
+            </div>
             <h3 className="subsection">Contact</h3>
             <div className="grid grid-cols-2 gap-4">
               <label>
@@ -265,6 +625,29 @@ export default function ResumeBuilder() {
                   className="input"
                 />
               </label>
+            </div>
+            <div className="mt-3">
+              <div className="section-title mb-2">Websites / Portfolio</div>
+              {(form.websites || []).map((w, i) => (
+                <div className="grid grid-cols-2 gap-2 mb-2" key={i}>
+                  <input
+                    placeholder="Label (e.g. Portfolio)"
+                    value={w.label}
+                    onChange={(e) => updateField(`websites.${i}.label`, e.target.value)}
+                    className="input px-2 py-2"
+                  />
+                  <div className="flex gap-2 items-center">
+                    <input
+                      placeholder="https://example.com"
+                      value={w.url}
+                      onChange={(e) => updateField(`websites.${i}.url`, e.target.value)}
+                      className="input px-2 py-2 flex-1"
+                    />
+                    <button onClick={() => removeWebsite(i)} className="text-red-600">Remove</button>
+                  </div>
+                </div>
+              ))}
+              <button onClick={addWebsite} className="btn btn-success btn-sm">Add link</button>
             </div>
 
             <div className="divider" />
@@ -491,8 +874,8 @@ export default function ResumeBuilder() {
               <button onClick={downloadPDF} className="btn btn-primary">
                 Download PDF
               </button>
-              <button onClick={downloadWord} className="btn btn-warning">
-                Download Word
+              <button onClick={downloadDocx} className="btn btn-warning">
+                Download DOCX
               </button>
             </div>
           </div>
@@ -502,14 +885,18 @@ export default function ResumeBuilder() {
         <main className="rb-preview">
           <div className="flex justify-between items-start mb-4">
             <h3 className="text-slate-600 font-medium">Preview</h3>
-            <div className="text-sm text-slate-400">What you see is exported</div>
+            <div className="text-sm text-slate-400">
+              {pages > 1
+                ? `${pages} pages when printed — try compact`
+                : "What you see is exported"}
+            </div>
           </div>
 
           <div className="rb-preview-scroller">
             <div
               id="resume-preview"
               ref={previewRef}
-              className="paper card p-10 md:p-12 mx-auto"
+              className={`paper card p-10 md:p-12 mx-auto ${compact ? "compact" : ""}`}
             >
               <div className="flex justify-between items-start">
                 <div>
@@ -520,13 +907,44 @@ export default function ResumeBuilder() {
                     {form.title}
                   </div>
                 </div>
-                <div className="text-sm text-right text-slate-600">
-                  <div>{form.phone}</div>
-                  <div>{form.email}</div>
+              <div className="text-sm text-right text-slate-600">
+                {form.photo && (
+                  <img src={form.photo} alt="Photo" className="passport-photo mx-auto mb-2" />
+                )}
+                  {form.phone && (
+                    <div>
+                      <a href={normalizeTel(form.phone)}>{form.phone}</a>
+                    </div>
+                  )}
+                  {form.email && (
+                    <div>
+                      <a href={normalizeUrl(form.email)}>{form.email}</a>
+                    </div>
+                  )}
                   <div>{form.address}</div>
-                  {form.linkedin && <div>LinkedIn: {form.linkedin}</div>}
-                  {form.github && <div>GitHub: {form.github}</div>}
-                </div>
+                  {form.linkedin && (
+                    <div>
+                      <a href={normalizeUrl(form.linkedin)} target="_blank" rel="noreferrer">
+                        LinkedIn: {form.linkedin}
+                      </a>
+                    </div>
+                  )}
+                  {form.github && (
+                    <div>
+                      <a href={normalizeUrl(form.github)} target="_blank" rel="noreferrer">
+                        GitHub: {form.github}
+                      </a>
+                    </div>
+                  )}
+                  {(form.websites || []).filter((w) => w.url).map((w, i) => (
+                    <div key={i}>
+                      <a href={normalizeUrl(w.url)} target="_blank" rel="noreferrer">
+                        {w.label ? `${w.label}: ` : ""}
+                        {w.url}
+                      </a>
+                    </div>
+                  ))}
+              </div>
               </div>
 
               <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -534,9 +952,7 @@ export default function ResumeBuilder() {
                   {form.summary && (
                     <section className="mb-4">
                       <h4 className="font-semibold text-slate-800">Profile</h4>
-                      <p className="text-sm text-slate-700 mt-2">
-                        {form.summary}
-                      </p>
+                      <p className="text-sm text-slate-700 mt-2">{linkify(form.summary)}</p>
                     </section>
                   )}
 
@@ -569,7 +985,7 @@ export default function ResumeBuilder() {
                             {ex.details && (
                               <ul className="list-disc list-inside text-sm text-slate-700 mt-2">
                                 {ex.details.split("\n").map((d, idx) => (
-                                  <li key={idx}>{d}</li>
+                                  <li key={idx}>{linkify(d)}</li>
                                 ))}
                               </ul>
                             )}
@@ -597,9 +1013,7 @@ export default function ResumeBuilder() {
                               </div>
                             </div>
                             {edu.details && (
-                              <div className="text-sm text-slate-700 mt-1">
-                                {edu.details}
-                              </div>
+                              <div className="text-sm text-slate-700 mt-1">{linkify(edu.details)}</div>
                             )}
                           </div>
                         )
@@ -615,7 +1029,7 @@ export default function ResumeBuilder() {
                         <li className="text-slate-500">None added</li>
                       )}
                       {form.certifications.filter(Boolean).map((c, i) => (
-                        <li key={i}>{c}</li>
+                        <li key={i}>{linkify(c)}</li>
                       ))}
                     </ul>
                   </section>
@@ -657,17 +1071,11 @@ export default function ResumeBuilder() {
         </main>
 
         <div className="no-print fixed right-6 bottom-6 z-50 flex flex-col gap-3">
-          <button
-            onClick={downloadPDF}
-            className="btn btn-primary rounded-full shadow-lg"
-          >
+          <button onClick={downloadPDF} className="btn btn-primary rounded-full shadow-lg">
             📄 PDF
           </button>
-          <button
-            onClick={downloadWord}
-            className="btn btn-warning rounded-full shadow-lg"
-          >
-            📁 Word
+          <button onClick={downloadDocx} className="btn btn-warning rounded-full shadow-lg">
+            📁 DOCX
           </button>
         </div>
       </div>

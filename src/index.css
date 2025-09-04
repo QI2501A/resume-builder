@@ -135,6 +135,28 @@ body {
   --chip: #f8fafc; /* slate-50 */
 }
 
+/* Compact mode to help keep to 1 page */
+.paper.compact {
+  /* Slight global tightening */
+}
+.paper.compact .text-2xl { font-size: 1.375rem; line-height: 1.875rem; }
+.paper.compact .md\:text-3xl { font-size: 1.625rem; line-height: 2rem; }
+.paper.compact .text-sm { font-size: 0.8125rem; line-height: 1.2rem; }
+.paper.compact .gap-6 { gap: 1rem; }
+.paper.compact .mb-4 { margin-bottom: 0.75rem; }
+.paper.compact .mt-6 { margin-top: 1rem; }
+.paper.compact p, .paper.compact li { line-height: 1.35; }
+
+/* Passport photo styling */
+.passport-photo {
+  width: 35mm; /* Passport photo typical width */
+  height: 45mm; /* Typical height */
+  object-fit: cover;
+  border-radius: 0.25rem;
+  border: 1px solid var(--border);
+  background: #fff;
+}
+
 /* Print styles */
 @media print {
   @page { size: A4; margin: 12mm; }
